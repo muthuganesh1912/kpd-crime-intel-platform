@@ -1,303 +1,146 @@
-# KPD Crime Intelligence Platform
+# KSP Crime Intelligence Platform
 
-A comprehensive crime intelligence and analytics platform for the Karnataka State Police (KSP) to track, analyze, and manage crime data across the state.
-
-## Overview
-
-The KPD Crime Intelligence Platform is a web-based application that provides deep insights into crime patterns, trends, and hotspots across Karnataka. It enables law enforcement officers to make data-driven decisions through interactive dashboards, advanced analytics, and AI-powered assistance.
+A crime intelligence and case management platform for the Karnataka State Police, built on **Zoho Catalyst**. The platform gives officers a live dashboard, analytics, a hotspot map, a case/accused network graph, case search, a natural-language crime assistant, generated reports, and rule-based alerts — all backed by serverless functions and a ZCQL data store.
 
 ## Features
 
-### 📊 Core Features
+| Page | Description |
+|---|---|
+| `dashboard.html` | Live summary stats, FIR trend chart, crime category breakdown, top districts/stations |
+| `crime_analytics.html` | Deeper analytics — monthly trend, crime-by-head, crime-by-district, status distribution, time-of-day heatmap |
+| `hotspot_map.html` | Leaflet map plotting case locations, district intensity legend, per-station table |
+| `network_analysis.html` | vis-network graph linking accused, cases, and police stations; flags repeat offenders |
+| `case_explorer.html` | Searchable/filterable case list with a detail panel (accused, brief facts, status) |
+| `ai_assistant.html` | Natural-language chat interface over case data, with inline charts/tables |
+| `reports.html` | Generates Monthly Summary / By District / By Crime Head / By Station / Pending Investigations reports, with CSV export |
+| `alerts.html` | Rule-based alerts: long-pending investigations, district crime spikes, repeat offenders |
 
-- **Crime Analytics Dashboard**: Real-time crime statistics, trends, and patterns
-- **Hotspot Map**: Geographic visualization of crime incidents with heat mapping
-- **Case Explorer**: Search and manage individual case records
-- **Network Analysis**: Visualize connections between accused individuals and cases
-- **AI Crime Assistant**: Natural language querying for crime data
-- **Alerts Management**: Real-time alert system for critical incidents
-- **Reports Generation**: Automated report generation for law enforcement
-- **Investigation Analysis**: Track investigation progress and case status
+## Tech Stack
 
-### 📈 Analytics Capabilities
+**Frontend**
+- HTML5, CSS3, vanilla JavaScript (no framework)
+- [Chart.js 4.4.0](https://www.chartjs.org/) — bar/line/doughnut charts
+- [Leaflet.js 1.9.4](https://leafletjs.com/) + OpenStreetMap tiles — hotspot map
+- [vis-network.js 9.1.9](https://visjs.github.io/vis-network/) — network graph
+- Fetch API for all client-server calls
 
-- Monthly and yearly crime trend analysis
-- Crime category distribution and breakdown
-- District-wise and station-wise crime comparison
-- Repeat offender identification
-- Crime by time-of-day heatmaps
-- Status-based case filtering (Under Investigation, Charge Sheet Filed, Final Report, Closed)
-- Geographic hotspot identification
+**Backend**
+- Node.js + Express.js (each Catalyst Function is an Express app)
+- `zcatalyst-sdk-node` — official Catalyst Node SDK
 
-### 🤖 AI Assistant
+**Architecture**
+- Serverless (Zoho Catalyst Functions — Advanced I/O)
 
-- Natural language query processing
-- Crime type and district detection
-- Intent-based analytics (trends, repeat offenders, top areas, etc.)
-- Privacy and bias-aware responses
-- Multi-language support ready
+**Database**
+- ZCQL (Zoho Catalyst Query Language) over the Catalyst Data Store
+
+## Architecture Overview
+
+```
+Browser (client/, 9 static pages)
+        │  fetch("/server/<function>/<function>")
+        ▼
+Zoho Catalyst Platform
+        │
+        ├── Catalyst Functions (serverless, Advanced I/O)
+        │     dashboardStats · crimeAnalytics · hotspotMap · networkAnalysis
+        │     caseExplorer · reports · alerts · aiCrimeAssistant
+        │
+        │  ZCQL queries (≤300 rows per query)
+        ▼
+Catalyst Data Store
+        CaseMaster table · Accused table
+```
+
+Relative API paths (`/server/<function>/<function>`) are used instead of hardcoded hosts, so the same code works unchanged in both the local `catalyst serve` environment and the deployed Catalyst domain.
+
+## Zoho Catalyst Services Used
+
+| Service | Purpose |
+|---|---|
+| **Catalyst Functions** (Advanced I/O, serverless) | 8 functions implementing all backend logic |
+| **Catalyst Data Store — ZCQL** | Querying `CaseMaster` and `Accused` from every function |
+| **Catalyst Data Store — Datastore API** | One-time bulk seed of 200+ synthetic case records |
+| **Catalyst Client Hosting** | Serves the static frontend (`client/` folder) |
+| **Catalyst CLI** | Local development (`catalyst serve`) and deployment (`catalyst deploy`) |
+
+**Not yet used (future scope):** Catalyst Authentication (role-based access per officer), Cache, Cron, File Store, Zia (AI/ML), API Gateway, Push Notifications.
 
 ## Project Structure
 
 ```
 kpd-crime-intel-platform/
-├── functions/
-│   ├── aiCrimeAssistant/          # AI-powered crime query assistant
-│   │   ├── index.js               # Main assistant logic
-│   │   ├── package.json
-│   │   └── catalyst-config.json
-│   ├── dashboardStats/            # Dashboard analytics endpoints
-│   │   ├── index.js               # Dashboard and hotspot data
-│   │   ├── package.json
-│   │   └── catalyst-config.json
-│   ├── kpd_crime_intel_platform_function/  # Data seeding
-│   │   ├── index.js               # Sample data generation
-│   │   ├── package.json
-│   │   └── catalyst-config.json
-│   ├── crimeAnalytics/            # Crime analytics module
-│   ├── hotspotMap/                # Hotspot mapping module
-│   ├── caseExplorer/              # Case search and explore
-│   ├── networkAnalysis/           # Network analysis module
-│   ├── alerts/                    # Alert management
-│   └── reports/                   # Report generation
-├── ai_assistant.html              # AI assistant frontend
-├── crime_analytics.html            # Crime analytics dashboard
-├── dashboard_analytics.html        # Interactive analytics dashboard
-├── hotspot_map.html               # Hotspot map interface
-├── case_explorer.html             # Case search interface
-├── network_analysis.html          # Network visualization
-├── alerts.html                    # Alerts management
-├── reports.html                   # Reports interface
-├── dashboard.html                 # Main dashboard
-├── catalyst.json                  # Catalyst project configuration
-├── .catalystrc                    # Catalyst CLI config
-└── README.md                      # This file
+├── catalyst.json                # Registers function targets and client source
+├── client/                      # Static frontend, served by Catalyst Client Hosting
+│   ├── client-package.json      # homepage: dashboard.html
+│   ├── dashboard.html
+│   ├── crime_analytics.html
+│   ├── hotspot_map.html
+│   ├── network_analysis.html
+│   ├── case_explorer.html
+│   ├── ai_assistant.html
+│   ├── reports.html
+│   ├── alerts.html
+│   └── Seal_of_Karnataka.svg
+└── functions/                   # One folder per Catalyst Function
+    ├── dashboardStats/
+    ├── crimeAnalytics/
+    ├── hotspotMap/
+    ├── networkAnalysis/
+    ├── caseExplorer/
+    ├── reports/
+    ├── alerts/
+    ├── aiCrimeAssistant/
+    └── kpd_crime_intel_platform_function/   # seed-data utility
 ```
 
-## Technology Stack
+Each function folder contains its own `index.js` (Express app) and `package.json`, listing **both** `zcatalyst-sdk-node` and `express` as dependencies — Catalyst reinstalls dependencies fresh on deploy, so both must be declared explicitly even though `catalyst serve` may work locally without it.
 
-### Backend
-- **Node.js**: Runtime environment
-- **Express.js**: Web framework
-- **Catalyst SDK**: Backend-as-a-service platform
-- **ZCQL**: Query language for Catalyst datastore
+## Local Development
 
-### Frontend
-- **HTML5**: Markup language
-- **CSS3**: Styling with responsive design
-- **JavaScript (ES6+)**: Client-side logic
-- **Chart.js**: Interactive charting library
-
-### Database
-- **Catalyst Datastore**: NoSQL database for crime records
-- **ZCQL**: Query language for data retrieval
-
-## API Endpoints
-
-### Dashboard Statistics
+```powershell
+# start the Catalyst emulator (backend functions)
+catalyst serve
 ```
-GET /dashboardStats
+
+The client is served automatically by `catalyst serve` under its local URL. Each function is invoked at:
+
 ```
-Returns:
-- Total FIRs count
-- Case status breakdown (Under Investigation, Charge Sheet Filed, Final Report, Closed)
-- Crime category distribution
-- Top districts
-- Top police stations
-- Monthly trend data
-
-### Hotspot Data
+http://localhost:3000/server/<function-name>/<function-name>
 ```
-GET /hotspotData
+
+Test any function directly:
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:3000/server/dashboardstats/dashboardStats"
 ```
-Returns:
-- Geo-tagged crime points (latitude, longitude)
-- Crime filters (types, districts, statuses)
-- Top hotspot stations
-- Total points count
 
-### AI Crime Assistant
+## Deployment
+
+```powershell
+catalyst deploy
 ```
-POST /aiCrimeAssistant
-Body: { "query": "user's natural language question" }
+
+This pushes both the `client/` folder (per `catalyst.json`'s `client.source`) and all 8 function targets together. After deployment, pages are available under:
+
 ```
-Returns:
-- Detected crime type, district, status
-- Identified intent
-- Contextual answer
-- Chart data (if applicable)
-
-Supported queries:
-- "Show theft cases in Bengaluru"
-- "What is the trend for robbery?"
-- "Which are the top areas for crime?"
-- "Show repeat offenders"
-- "Crime trend over the last 12 months"
-
-### Data Seeding
+https://<project-domain>.development.catalystserverless.in/app/<page>.html
 ```
-GET /seedData
-```
-Generates sample crime cases and accused records for testing.
 
-## Setup Instructions
+(swap `.development.` out once promoted to the production environment).
 
-### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn
-- Catalyst CLI
-- A Catalyst account and project
+## Known Limits
 
-### Installation
+- **ZCQL row cap**: a single query can return at most 300 rows. All functions cap `LIMIT 300`; if case volume grows past this, functions need pagination (looping with increasing offsets).
+- **Dev environment storage cap**: 5,000 rows/table, 25,000 rows/project. Production has separate, higher limits.
+- **Dev environment user cap** (once Authentication is added): 25 users; unlimited in production.
+- No caching layer — analytics/report endpoints recompute aggregates from scratch on every request.
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/muthuganesh1912/kpd-crime-intel-platform.git
-   cd kpd-crime-intel-platform
-   ```
+## Roadmap
 
-2. **Install dependencies**
-   ```bash
-   cd functions/aiCrimeAssistant && npm install
-   cd ../dashboardStats && npm install
-   cd ../kpd_crime_intel_platform_function && npm install
-   cd ../..
-   ```
-
-3. **Configure Catalyst**
-   - Update `catalyst.json` with your Catalyst project credentials
-   - Configure `.catalystrc` with your authentication details
-
-4. **Deploy functions**
-   ```bash
-   catalyst deploy
-   ```
-
-5. **Open the dashboard**
-   - Open `dashboard.html` in your browser
-   - Or use a local server: `npx http-server`
-
-## Usage
-
-### Accessing the Dashboard
-
-1. **Via File System**
-   ```
-   file:///path/to/dashboard_analytics.html
-   ```
-
-2. **Via Local Server**
-   ```bash
-   npx http-server
-   # Open http://localhost:8080/dashboard_analytics.html
-   ```
-
-### Using the AI Assistant
-
-1. Navigate to the AI Crime Assistant page
-2. Enter natural language queries:
-   - "Show me theft cases"
-   - "What districts have the most crime?"
-   - "List repeat offenders"
-   - "Show crime trends"
-
-### Generating Reports
-
-1. Go to Reports section
-2. Select filters (date range, district, crime type)
-3. Click "Generate Report"
-4. Export as PDF/Excel
-
-## Data Models
-
-### CaseMaster Table
-- `Crime_no`: Unique crime case identifier
-- `CrimeRegistrationDate`: Date of crime registration
-- `District_Name`: District where crime occurred
-- `PoliceStationName`: Police station jurisdiction
-- `CrimeGroupName`: Category of crime (Theft, Assault, etc.)
-- `CaseStatus`: Current case status
-- `Latitude`: Crime location latitude
-- `Longitude`: Crime location longitude
-- `BriefFacts`: Summary of the incident
-
-### Accused Table
-- `CrimeNo`: Associated crime case number
-- `AccusedName`: Name of accused person
-- `AgeYear`: Age of accused
-- `GenderID`: Gender identifier
-- `PersonID`: Unique person identifier
-
-## Crime Categories
-
-The platform tracks the following crime types:
-- **Theft**: Larceny, burglary, stealing
-- **Assault**: Physical attacks, beating
-- **Robbery**: Snatching, mugging, armed robbery
-- **Cheating**: Fraud, scams
-- **Kidnapping**: Abduction, hostage
-- **Criminal Intimidation**: Threats, threatening behavior
-
-## Districts Covered
-
-- Bengaluru City
-- Bengaluru Rural
-- Mysuru
-- Belagavi
-- Dharwad
-- Tumakuru
-
-## Security & Privacy
-
-- ✅ Privacy-aware AI assistant (blocks sensitive queries)
-- ✅ Role-based access control ready
-- ✅ Bias detection in analytics
-- ✅ Confidential data protection
-- ✅ CORS enabled for secure cross-origin requests
-
-## Limitations & Future Enhancements
-
-### Current Limitations
-- Mock data generation for demonstration
-- Limited to historical data (no real-time streaming)
-- Batch processing for reports
-
-### Planned Features
-- Real-time crime alert streaming
-- Predictive analytics using ML models
-- Integration with multiple data sources
-- Mobile app
-- Advanced network analysis visualization
-- Multi-language support
-- Integration with external law enforcement databases
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## Support
-
-For support, contact:
-- **Support Center**: 080-2236-4444
-- **Email**: support@kspcrimes.gov.in
-
-## License
-
-This project is licensed under the Government of Karnataka - All Rights Reserved.
-
-## Disclaimer
-
-This platform is designed for authorized law enforcement personnel only. Unauthorized access or use is prohibited by law.
-
-## Last Updated
-
-31 May 2024, 10:30 AM
-
----
-
-**Karnataka State Police Crime Intelligence Platform**
-*Deep insights into crime patterns and trends across Karnataka*
+- **Catalyst Authentication + Roles** — per-officer login, with roles (e.g. App Administrator, Inspector) scoping access by district/station
+- **Catalyst Cache** — cache dashboard/report aggregates to reduce repeated ZCQL load
+- **Catalyst Cron** — scheduled daily alert generation and report snapshots
+- **Catalyst File Store** — attach evidence photos/scanned FIRs to case records
+- **Catalyst Zia** — real NLP for the AI Crime Assistant, OCR for scanned documents
+- **Catalyst API Gateway** — rate limiting and API keys ahead of a wider rollout
