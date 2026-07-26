@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "targets": [
+      "kpd_crime_intel_platform_function",
+      "dashboardstats",
+      "aicrimeassistant"
+    ],
+    "ignore": [],
+    "source": "functions"
+  }
+}

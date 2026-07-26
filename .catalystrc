@@ -1,0 +1,30 @@
+{
+  "defaults": {
+    "project": 1,
+    "env": 1
+  },
+  "actives": {
+    "project": 1,
+    "env": 1
+  },
+  "projects": [
+    {
+      "idx": 1,
+      "id": "43603000000033409",
+      "name": "kpd-crime-intel-platform",
+      "domain": {
+        "id": "50044348849",
+        "name": "kpd-crime-intel-platform-60075058456.development"
+      },
+      "timezone": "Asia/Kolkata",
+      "env": [
+        {
+          "idx": 1,
+          "id": "60075058456",
+          "name": "Development",
+          "type": 3
+        }
+      ]
+    }
+  ]
+}

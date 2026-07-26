@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KSP Crime Intelligence Platform — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0b1220;
+    --navy-2:#111b30;
+    --blue:#2f5fe0;
+    --blue-light:#eaf0ff;
+    --text:#1c2333;
+    --muted:#6b7280;
+    --border:#e7eaf0;
+    --bg:#f6f7fb;
+    --green:#1fa15c;
+    --red:#e0432f;
+    --amber:#e0a52f;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);}
+  .layout{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{width:230px;background:var(--navy);color:#cbd3e6;flex-shrink:0;padding:20px 0;}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid #1c2740;margin-bottom:10px;}
+  .brand-badge{width:36px;height:36px;border-radius:50%;background:#f2b90c;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0b1220;}
+  .brand h1{font-size:13px;line-height:1.2;margin:0;color:#fff;}
+  .brand span{font-size:10px;color:#8a93ab;}
+  .nav{display:flex;flex-direction:column;padding:10px;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#aab3cc;text-decoration:none;font-size:13px;margin-bottom:2px;}
+  .nav a.active{background:var(--blue);color:#fff;}
+  .nav a:hover:not(.active){background:#161f38;}
+
+  /* Main */
+  .main{flex:1;padding:24px 28px;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+  .topbar h2{margin:0;font-size:22px;}
+  .topbar p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+  .profile{display:flex;align-items:center;gap:10px;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--blue-light);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+
+  .grid-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .stat-card .label{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .stat-card .value{font-size:24px;font-weight:700;}
+  .stat-card .delta{font-size:11px;color:var(--green);margin-top:4px;}
+
+  .grid-main{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:18px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .card h3{margin:0 0 12px;font-size:14px;}
+  .row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+  .legend-list{list-style:none;padding:0;margin:0;font-size:12px;}
+  .legend-list li{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f1f5;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;}
+
+  .bar-row{display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px;}
+  .bar-row .name{width:120px;color:var(--muted);}
+  .bar-track{flex:1;height:8px;background:#f0f1f5;border-radius:4px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--blue);border-radius:4px;}
+  .bar-count{width:36px;text-align:right;font-weight:600;}
+
+  .loading{color:var(--muted);font-size:13px;padding:20px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge">K</div>
+      <div>
+        <h1>KARNATAKA<br>STATE POLICE</h1>
+        <span>Crime Intelligence Platform</span>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="active" href="#">🏠 Dashboard</a>
+      <a href="#">📊 Crime Analytics</a>
+      <a href="#">📍 Hotspot Map</a>
+      <a href="#">🕸 Network Analysis</a>
+      <a href="#">📁 Case Explorer</a>
+      <a href="#">🤖 AI Crime Assistant</a>
+      <a href="#">📄 Reports</a>
+      <a href="#">🔔 Alerts</a>
+      <a href="#">⚙️ Settings</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2>Dashboard</h2>
+        <p id="subtitle">Loading live data from Catalyst…</p>
+      </div>
+      <div class="profile">
+        <div class="avatar">IA</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;">Inspector Arun</div>
+          <div style="font-size:11px;color:var(--muted);">Investigating Officer</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-stats" id="statCards">
+      <div class="loading">Loading stats…</div>
+    </div>
+
+    <div class="grid-main">
+      <div class="card">
+        <h3>FIRs Over Time (Monthly)</h3>
+        <canvas id="trendChart" height="110"></canvas>
+      </div>
+      <div class="card">
+        <h3>Crime Category Distribution</h3>
+        <canvas id="categoryChart" height="140"></canvas>
+        <ul class="legend-list" id="categoryLegend"></ul>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <h3>FIRs by District (Top 5)</h3>
+        <div id="districtBars"></div>
+      </div>
+      <div class="card">
+        <h3>Top Police Stations</h3>
+        <div id="stationBars"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API_URL = "http://localhost:3000/server/dashboardstats/dashboardStats";
+const palette = ["#2f5fe0","#1fa15c","#e0a52f","#e0432f","#8a5ce0","#0e9aa7"];
+
+async function loadDashboard(){
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if(data.status !== "success"){ throw new Error(data.error || "Unknown error"); }
+    renderStats(data.summary);
+    renderTrend(data.firsOverTime);
+    renderCategory(data.crimeCategoryDistribution);
+    renderBars('districtBars', data.topDistricts);
+    renderBars('stationBars', data.topStations);
+    document.getElementById('subtitle').textContent = "Live data — Karnataka State Police Crime Records";
+  }catch(err){
+    document.getElementById('subtitle').textContent = "Could not load live data: " + err.message;
+    document.getElementById('statCards').innerHTML = '<div class="loading">Failed to load. Is `catalyst serve` running?</div>';
+  }
+}
+
+function renderStats(s){
+  const cards = [
+    {label:"Total FIRs", value:s.totalFIRs},
+    {label:"Under Investigation", value:s.openCases},
+    {label:"Charge Sheet Filed", value:s.chargeSheetFiled},
+    {label:"Final Report", value:s.finalReport},
+    {label:"Closed", value:s.closed},
+  ];
+  document.getElementById('statCards').innerHTML = cards.map(c => `
+    <div class="stat-card">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value.toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+function renderTrend(rows){
+  const ctx = document.getElementById('trendChart');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: rows.map(r => r.month),
+      datasets: [{
+        label: 'FIRs',
+        data: rows.map(r => r.count),
+        borderColor: '#2f5fe0',
+        backgroundColor: 'rgba(47,95,224,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+function renderCategory(rows){
+  const ctx = document.getElementById('categoryChart');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: rows.map(r => r.name),
+      datasets: [{ data: rows.map(r => r.count), backgroundColor: palette }]
+    },
+    options: { plugins: { legend: { display: false } }, cutout: '65%' }
+  });
+
+  const total = rows.reduce((a,r) => a + r.count, 0);
+  document.getElementById('categoryLegend').innerHTML = rows.map((r,i) => `
+    <li><span><span class="dot" style="background:${palette[i % palette.length]}"></span>${r.name}</span>
+    <span>${((r.count/total)*100).toFixed(1)}% (${r.count})</span></li>
+  `).join('');
+}
+
+function renderBars(containerId, rows){
+  const max = Math.max(...rows.map(r => r.count));
+  document.getElementById(containerId).innerHTML = rows.map(r => `
+    <div class="bar-row">
+      <div class="name">${r.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(r.count/max)*100}%"></div></div>
+      <div class="bar-count">${r.count}</div>
+    </div>
+  `).join('');
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
