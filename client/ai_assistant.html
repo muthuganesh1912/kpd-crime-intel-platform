@@ -10,8 +10,9 @@
     --text:#1c2333; --muted:#6b7280; --border:#e7eaf0; --bg:#f6f7fb;
   }
   *{box-sizing:border-box;}
-  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);}
-  .layout{display:flex;min-height:100vh;}
+  html, body{height:100%;margin:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
+.layout{display:flex;height:100vh;}
   .sidebar{width:230px;background:var(--navy);color:#cbd3e6;flex-shrink:0;padding:20px 0;}
   .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid #1c2740;margin-bottom:10px;}
   .brand-badge{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
@@ -22,7 +23,7 @@
   .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#aab3cc;text-decoration:none;font-size:13px;margin-bottom:2px;}
   .nav a.active{background:var(--blue);color:#fff;}
 
-  .main{flex:1;padding:24px 28px;display:flex;flex-direction:column;}
+  .main{flex:1;padding:24px 28px;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
   .topbar h2{margin:0;font-size:22px;}
   .topbar p{margin:2px 0 0;color:var(--muted);font-size:13px;}
 
@@ -98,7 +99,7 @@
 </div>
 
 <script>
-const API_URL = "https://kpd-crime-intel-platform-60075058456.development.catalystserverless.in/server/aicrimeassistant/";
+const API_URL = "/server/aicrimeassistant/aiCrimeAssistant";
 let chartCounter = 0;
 
 function addMessage(role, html) {
