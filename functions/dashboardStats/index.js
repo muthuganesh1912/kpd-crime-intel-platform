@@ -90,4 +90,65 @@ app.get('/dashboardStats', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /hotspotData
+// Returns real, geo-tagged case records (lat/lng) for the Hotspot Map page,
+// plus the distinct filter values (crime types / districts / statuses) so
+// the frontend can build its filter dropdowns from live data.
+// ---------------------------------------------------------------------------
+app.get('/hotspotData', async (req, res) => {
+  try {
+    const catalystApp = catalyst.initialize(req);
+    const zcql = catalystApp.zcql();
+
+    const query = "SELECT CaseMaster.Crime_no, CaseMaster.CrimeRegistrationDate, CaseMaster.District_Name, CaseMaster.PoliceStationName, CaseMaster.CrimeGroupName, CaseMaster.CaseStatus, CaseMaster.Latitude, CaseMaster.Longitude FROM CaseMaster LIMIT 300";
+    const result = await zcql.executeZCQLQuery(query);
+    const cases = result.map(r => r.CaseMaster);
+
+    // Only keep rows with valid, numeric coordinates - bad/missing geo data
+    // would otherwise break the heatmap and marker layers on the frontend.
+    const points = cases
+      .map(c => ({
+        crimeNo: c.Crime_no,
+        lat: parseFloat(c.Latitude),
+        lng: parseFloat(c.Longitude),
+        district: c.District_Name,
+        station: c.PoliceStationName,
+        crimeType: c.CrimeGroupName,
+        status: c.CaseStatus,
+        date: c.CrimeRegistrationDate ? c.CrimeRegistrationDate.split(' ')[0] : null
+      }))
+      .filter(p =>
+        Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
+        p.lat !== 0 && p.lng !== 0
+      );
+
+    const crimeTypes = [...new Set(points.map(p => p.crimeType))].filter(Boolean).sort();
+    const districts = [...new Set(points.map(p => p.district))].filter(Boolean).sort();
+    const statuses = [...new Set(points.map(p => p.status))].filter(Boolean).sort();
+
+    // Station-level counts, useful for a "top hotspot" ranked list alongside the map
+    const stationCounts = {};
+    points.forEach(p => {
+      const key = `${p.station}|${p.district}`;
+      if (!stationCounts[key]) {
+        stationCounts[key] = { station: p.station, district: p.district, count: 0, lat: p.lat, lng: p.lng };
+      }
+      stationCounts[key].count += 1;
+    });
+    const topHotspots = Object.values(stationCounts).sort((a, b) => b.count - a.count).slice(0, 10);
+
+    res.status(200).send({
+      status: "success",
+      totalPoints: points.length,
+      points,
+      filters: { crimeTypes, districts, statuses },
+      topHotspots
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ status: "failure", error: err.message });
+  }
+});
+
 module.exports = app;

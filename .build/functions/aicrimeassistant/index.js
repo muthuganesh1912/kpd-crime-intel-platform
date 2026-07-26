@@ -118,6 +118,14 @@ function detectDistrict(t) {
   }
   return null;
 }
+// returns ALL districts mentioned in the sentence — needed for "compare X and Y" style queries
+function detectAllDistricts(t) {
+  const found = [];
+  for (const district of DISTRICTS) {
+    if (DISTRICT_SYNONYMS[district].some(syn => t.includes(syn))) found.push(district);
+  }
+  return found;
+}
 function detectStatus(t) {
   for (const status of Object.keys(STATUS_MAP)) {
     if (STATUS_MAP[status].some(syn => t.includes(syn))) return status;
@@ -194,6 +202,7 @@ app.post('/aiCrimeAssistant', async (req, res) => {
 
     const crimeType = detectCrimeType(t);
     const district = detectDistrict(t);
+    const allDistricts = detectAllDistricts(t);
     const status = detectStatus(t);
     let intent = detectIntent(t, !!status);
 
@@ -212,10 +221,15 @@ app.post('/aiCrimeAssistant', async (req, res) => {
     let allCases = result.map(r => r.CaseMaster);
     let cases = allCases;
 
-    if (intent !== 'category_breakdown') {
+    if (intent !== 'category_breakdown' && intent !== 'district_breakdown') {
       if (crimeType) cases = cases.filter(c => c.CrimeGroupName === crimeType);
       if (district) cases = cases.filter(c => c.District_Name === district);
       if (status && intent === 'status_filter') cases = cases.filter(c => c.CaseStatus === status);
+    } else if (intent === 'district_breakdown') {
+      // never self-filter to a single district here — that would defeat the point of comparing districts.
+      // only apply a crime-type filter if one was mentioned; district filtering is handled below by
+      // restricting to the named districts (if 2+ were mentioned) rather than collapsing to one.
+      if (crimeType) cases = cases.filter(c => c.CrimeGroupName === crimeType);
     }
 
     let answer = '';
@@ -264,10 +278,17 @@ app.post('/aiCrimeAssistant', async (req, res) => {
       data = { type: 'bar_chart', labels: top.map(t2 => t2.name), values: top.map(t2 => t2.count) };
 
     } else if (intent === 'district_breakdown') {
+      const districtScopedCases = allDistricts.length >= 2
+        ? cases.filter(c => allDistricts.includes(c.District_Name))
+        : cases; // fewer than 2 named — show all districts, not just one
       const districtCounts = {};
-      cases.forEach(c => { districtCounts[c.District_Name] = (districtCounts[c.District_Name] || 0) + 1; });
+      districtScopedCases.forEach(c => { districtCounts[c.District_Name] = (districtCounts[c.District_Name] || 0) + 1; });
+      // if specific districts were named, keep them all present in the chart even at 0
+      if (allDistricts.length >= 2) {
+        allDistricts.forEach(d => { if (!(d in districtCounts)) districtCounts[d] = 0; });
+      }
       const breakdown = Object.entries(districtCounts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-      answer = `District-wise breakdown for ${crimeType || 'all crimes'}: ${breakdown.map(b => `${b.name} (${b.count})`).join(', ') || 'no data found'}.`;
+      answer = `District-wise breakdown for ${crimeType || 'all crimes'}${allDistricts.length >= 2 ? ' — comparing ' + allDistricts.join(' and ') : ''}: ${breakdown.map(b => `${b.name} (${b.count})`).join(', ') || 'no data found'}.`;
       data = { type: 'bar_chart', labels: breakdown.map(b => b.name), values: breakdown.map(b => b.count) };
 
     } else if (intent === 'status_filter') {

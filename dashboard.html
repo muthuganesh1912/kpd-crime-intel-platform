@@ -25,7 +25,8 @@
   /* Sidebar */
   .sidebar{width:230px;background:var(--navy);color:#cbd3e6;flex-shrink:0;padding:20px 0;}
   .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid #1c2740;margin-bottom:10px;}
-  .brand-badge{width:36px;height:36px;border-radius:50%;background:#f2b90c;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0b1220;}
+  .brand-badge{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .brand-badge img{width:100%;height:100%;object-fit:contain;}
   .brand h1{font-size:13px;line-height:1.2;margin:0;color:#fff;}
   .brand span{font-size:10px;color:#8a93ab;}
   .nav{display:flex;flex-direction:column;padding:10px;}
@@ -69,22 +70,22 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-badge">K</div>
+      <div class="brand-badge"><img src="Seal_of_Karnataka.svg" alt="Karnataka State Emblem"></div>
       <div>
         <h1>KARNATAKA<br>STATE POLICE</h1>
         <span>Crime Intelligence Platform</span>
       </div>
     </div>
     <nav class="nav">
-      <a class="active" href="#">🏠 Dashboard</a>
-      <a href="#">📊 Crime Analytics</a>
-      <a href="#">📍 Hotspot Map</a>
-      <a href="#">🕸 Network Analysis</a>
-      <a href="#">📁 Case Explorer</a>
-      <a href="#">🤖 AI Crime Assistant</a>
-      <a href="#">📄 Reports</a>
-      <a href="#">🔔 Alerts</a>
-      <a href="#">⚙️ Settings</a>
+      <a href="dashboard.html">Dashboard</a>
+<a href="crime_analytics.html">Crime Analytics</a>
+<a href="hotspot_map.html">Hotspot Map</a>
+<a href="network_analysis.html">Network Analysis</a>
+<a href="case_explorer.html">Case Explorer</a>
+<a href="ai_assistant.html">AI Crime Assistant</a>
+<a href="reports.html">Reports</a>
+<a href="alerts.html">Alerts</a>
+<a href="#">Settings</a>
     </nav>
   </aside>
 
@@ -133,7 +134,7 @@
 </div>
 
 <script>
-const API_URL = "http://localhost:3000/server/dashboardstats/dashboardStats";
+const API_URL = "http://localhost:3000/server/dashboardStats/dashboardStats";
 const palette = ["#2f5fe0","#1fa15c","#e0a52f","#e0432f","#8a5ce0","#0e9aa7"];
 
 async function loadDashboard(){

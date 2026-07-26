@@ -3,7 +3,13 @@
     "targets": [
       "kpd_crime_intel_platform_function",
       "dashboardstats",
-      "aicrimeassistant"
+      "aicrimeassistant",
+      "hotspotmap",
+      "networkanalysis",
+      "caseexplorer",
+      "crimeanalytics",
+      "reports",
+      "alerts"
     ],
     "ignore": [],
     "source": "functions"

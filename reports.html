@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reports — KSP Crime Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0b1220; --blue:#2f5fe0; --blue-light:#eaf0ff;
+    --text:#1c2333; --muted:#6b7280; --border:#e7eaf0; --bg:#f6f7fb;
+  }
+  *{box-sizing:border-box;}
+  html, body{height:100%;margin:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
+  .layout{display:flex;height:100vh;}
+  .sidebar{width:230px;background:var(--navy);color:#cbd3e6;flex-shrink:0;padding:20px 0;}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid #1c2740;margin-bottom:10px;}
+  .brand-badge{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .brand-badge img{width:100%;height:100%;object-fit:contain;}
+  .brand h1{font-size:13px;line-height:1.2;margin:0;color:#fff;}
+  .brand span{font-size:10px;color:#8a93ab;}
+  .nav{display:flex;flex-direction:column;padding:10px;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#aab3cc;text-decoration:none;font-size:13px;margin-bottom:2px;}
+  .nav a.active{background:var(--blue);color:#fff;}
+  .nav a:hover:not(.active){background:#161f38;}
+
+  .main{flex:1;padding:24px 28px;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .topbar h2{margin:0;font-size:22px;}
+  .topbar p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+
+  .filter-bar{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;align-items:center;flex-shrink:0;}
+  .filter-bar select, .filter-bar input{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:#fff;}
+  .filter-bar button{border:none;border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-outline{background:#fff;color:var(--blue);border:1px solid var(--blue) !important;}
+  .filter-bar label{font-size:11px;color:var(--muted);}
+
+  .report-types{display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap;flex-shrink:0;}
+  .type-btn{padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12px;cursor:pointer;color:var(--muted);}
+  .type-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+  .content{display:flex;flex-direction:column;gap:16px;flex:1;min-height:0;overflow-y:auto;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .card h3{margin:0 0 12px;font-size:14px;}
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;}
+  .summary-card{background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:14px;}
+  .summary-card .label{font-size:11px;color:var(--muted);}
+  .summary-card .value{font-size:20px;font-weight:700;color:var(--blue);margin-top:4px;}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;}
+  td{padding:9px 12px;border-bottom:1px solid #f0f1f5;}
+  .table-card{overflow-y:auto;}
+
+  .loading{color:var(--muted);font-size:13px;padding:30px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge"><img src="Seal_of_Karnataka.svg" alt="Karnataka State Emblem"></div>
+      <div><h1>KARNATAKA<br>STATE POLICE</h1><span>Crime Intelligence Platform</span></div>
+    </div>
+    <nav class="nav">
+     <a href="dashboard.html">Dashboard</a>
+<a href="crime_analytics.html">Crime Analytics</a>
+<a href="hotspot_map.html">Hotspot Map</a>
+<a href="network_analysis.html">Network Analysis</a>
+<a href="case_explorer.html">Case Explorer</a>
+<a href="ai_assistant.html">AI Crime Assistant</a>
+<a href="reports.html">Reports</a>
+<a href="alerts.html">Alerts</a>
+<a href="#">Settings</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2>Reports</h2>
+      <p id="subtitle">Generate and export analytical reports from live case data</p>
+    </div>
+
+    <div class="report-types" id="reportTypes"></div>
+
+    <div class="filter-bar">
+      <label>From</label>
+      <input type="date" id="fromDate">
+      <label>To</label>
+      <input type="date" id="toDate">
+      <button class="btn-primary" onclick="generateReport()">Generate</button>
+      <button class="btn-outline" onclick="exportCsv()">Export CSV</button>
+    </div>
+
+    <div class="content">
+      <div class="card" id="summaryCard" style="display:none;">
+        <h3 id="summaryTitle">Summary</h3>
+        <div class="summary-grid" id="summaryGrid"></div>
+      </div>
+
+      <div class="card" id="chartCard" style="display:none;">
+        <h3>Chart</h3>
+        <canvas id="reportChart" height="100"></canvas>
+      </div>
+
+      <div class="card table-card" style="flex:1;min-height:0;">
+        <h3 id="tableTitle">Report Data</h3>
+        <table>
+          <thead><tr id="tableHead"></tr></thead>
+          <tbody id="tableBody"><tr><td class="loading">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API_URL = "http://localhost:3000/server/reports/reports";
+
+const REPORT_TYPES = [
+  { id: 'summary',   label: 'Monthly Summary' },
+  { id: 'district',  label: 'By District' },
+  { id: 'crimehead', label: 'By Crime Head' },
+  { id: 'station',   label: 'By Station' },
+  { id: 'pending',   label: 'Pending Investigations' }
+];
+
+let activeType = 'summary';
+let currentReport = null;
+let chartInstance = null;
+
+document.getElementById('reportTypes').innerHTML = REPORT_TYPES.map(t => `
+  <button class="type-btn ${t.id === activeType ? 'active' : ''}" data-type="${t.id}" onclick="selectType('${t.id}')">${t.label}</button>
+`).join('');
+
+function selectType(type){
+  activeType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  generateReport();
+}
+
+async function generateReport(){
+  const from = document.getElementById('fromDate').value;
+  const to = document.getElementById('toDate').value;
+  const params = new URLSearchParams({ type: activeType });
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+
+  document.getElementById('tableBody').innerHTML = '<tr><td class="loading">Loading…</td></tr>';
+  document.getElementById('summaryCard').style.display = 'none';
+  document.getElementById('chartCard').style.display = 'none';
+
+  try{
+    const res = await fetch(API_URL + '?' + params.toString());
+    const data = await res.json();
+    if(data.status !== 'success') throw new Error(data.error || 'Unknown error');
+    currentReport = data;
+    renderReport(data);
+    document.getElementById('subtitle').textContent = `${data.totalCases} case(s) in this report`;
+  }catch(err){
+    document.getElementById('tableBody').innerHTML = `<tr><td class="loading">Failed to load: ${err.message}. Is \`catalyst serve\` running?</td></tr>`;
+  }
+}
+
+function renderReport(data){
+  const typeLabel = REPORT_TYPES.find(t => t.id === data.type)?.label || data.type;
+  document.getElementById('tableTitle').textContent = typeLabel + ' — Detail';
+
+  if (data.type === 'summary'){
+    document.getElementById('summaryTitle').textContent = 'Monthly Summary';
+    document.getElementById('summaryCard').style.display = 'block';
+    const cards = [
+      { label: 'Total Cases', value: data.totalCases },
+      { label: 'Top District', value: data.topDistrict ? data.topDistrict.name : '–' },
+      { label: 'Top Crime Head', value: data.topCrimeHead ? data.topCrimeHead.name : '–' },
+      { label: 'Date Range', value: data.dateRange.earliest ? `${data.dateRange.earliest} → ${data.dateRange.latest}` : '–' }
+    ];
+    document.getElementById('summaryGrid').innerHTML = cards.map(c => `
+      <div class="summary-card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>
+    `).join('');
+  }
+
+  if (data.chart){
+    document.getElementById('chartCard').style.display = 'block';
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(document.getElementById('reportChart'), {
+      type: 'bar',
+      data: { labels: data.chart.labels, datasets: [{ data: data.chart.values, backgroundColor: '#2f5fe0' }] },
+      options: { indexAxis: data.type === 'crimehead' ? 'x' : 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+    });
+  }
+
+  document.getElementById('tableHead').innerHTML = data.columns.map(c => `<th>${c}</th>`).join('');
+  document.getElementById('tableBody').innerHTML = data.rows.length
+    ? data.rows.map(r => '<tr>' + r.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('')
+    : `<tr><td colspan="${data.columns.length}" class="loading">No data for this report.</td></tr>`;
+}
+
+function exportCsv(){
+  if (!currentReport) return;
+  const lines = [currentReport.columns.join(',')];
+  currentReport.rows.forEach(r => lines.push(r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')));
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `report_${currentReport.type}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+generateReport();
+</script>
+</body>
+</html>

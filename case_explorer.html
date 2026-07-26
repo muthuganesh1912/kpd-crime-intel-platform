@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Case Explorer — KSP Crime Intelligence Platform</title>
+<style>
+  :root{
+    --navy:#0b1220; --blue:#2f5fe0; --blue-light:#eaf0ff;
+    --text:#1c2333; --muted:#6b7280; --border:#e7eaf0; --bg:#f6f7fb;
+  }
+  *{box-sizing:border-box;}
+  html, body{height:100%;margin:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
+  .layout{display:flex;height:100vh;}
+  .sidebar{width:230px;background:var(--navy);color:#cbd3e6;flex-shrink:0;padding:20px 0;}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid #1c2740;margin-bottom:10px;}
+  .brand-badge{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .brand-badge img{width:100%;height:100%;object-fit:contain;}
+  .brand h1{font-size:13px;line-height:1.2;margin:0;color:#fff;}
+  .brand span{font-size:10px;color:#8a93ab;}
+  .nav{display:flex;flex-direction:column;padding:10px;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#aab3cc;text-decoration:none;font-size:13px;margin-bottom:2px;}
+  .nav a.active{background:var(--blue);color:#fff;}
+
+  .main{flex:1;padding:24px 28px;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .topbar h2{margin:0;font-size:22px;}
+  .topbar p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+
+  .filter-bar{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;flex-shrink:0;}
+  .filter-bar select, .filter-bar input{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:#fff;}
+  .filter-bar input{flex:1;min-width:180px;}
+  .filter-bar button{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;}
+
+  .content{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;flex:1;min-height:0;}
+  .results-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow-y:auto;padding:0;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{position:sticky;top:0;background:#fafbfd;text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);}
+  td{padding:10px 12px;border-bottom:1px solid #f0f1f5;}
+  tr.case-row{cursor:pointer;}
+  tr.case-row:hover{background:var(--blue-light);}
+  .status-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;}
+  .status-badge.Closed{background:#e8f7ee;color:#1fa15c;}
+  .status-badge.Under.Investigation, .status-badge[data-s="Under Investigation"]{background:#fdeceb;color:#e0432f;}
+  .status-badge[data-s="Charge Sheet Filed"]{background:#fdf3e3;color:#e0a52f;}
+  .status-badge[data-s="Final Report"]{background:var(--blue-light);color:var(--blue);}
+
+  .detail-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;overflow-y:auto;}
+  .detail-card h4{margin:0 0 12px;font-size:14px;}
+  .detail-row{display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid #f0f1f5;}
+  .detail-row:last-child{border-bottom:none;}
+  .brief-facts{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.5;}
+  .accused-item{font-size:12px;padding:6px 0;border-bottom:1px solid #f0f1f5;}
+  .placeholder{color:var(--muted);font-size:13px;text-align:center;padding:30px 10px;}
+  .loading{color:var(--muted);font-size:13px;padding:20px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge"><img src="Seal_of_Karnataka.svg" alt="Karnataka State Emblem"></div>
+      <div><h1>KARNATAKA<br>STATE POLICE</h1><span>Crime Intelligence Platform</span></div>
+    </div>
+    <nav class="nav">
+      <a href="dashboard.html">Dashboard</a>
+<a href="crime_analytics.html">Crime Analytics</a>
+<a href="hotspot_map.html">Hotspot Map</a>
+<a href="network_analysis.html">Network Analysis</a>
+<a href="case_explorer.html">Case Explorer</a>
+<a href="ai_assistant.html">AI Crime Assistant</a>
+<a href="reports.html">Reports</a>
+<a href="alerts.html">Alerts</a>
+<a href="#">Settings</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2>Case Explorer</h2>
+      <p id="subtitle">Search, filter and explore FIR/case records</p>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="Search by crime number, station, or facts...">
+      <select id="districtFilter"><option value="">All Districts</option></select>
+      <select id="crimeTypeFilter"><option value="">All Crime Types</option></select>
+      <select id="statusFilter"><option value="">All Status</option></select>
+      <button onclick="loadCases()">Search</button>
+    </div>
+
+    <div class="content">
+      <div class="results-card">
+        <table>
+          <thead><tr><th>FIR No.</th><th>Date</th><th>Station</th><th>Crime Head</th><th>Status</th></tr></thead>
+          <tbody id="resultsBody"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="detail-card" id="detailCard">
+        <div class="placeholder">Select a case from the list to view details</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const LIST_API = "http://localhost:3000/server/caseexplorer/caseExplorer";
+const DETAIL_API = "http://localhost:3000/server/caseexplorer/caseExplorer/detail";
+
+const DISTRICTS = ["Bengaluru City", "Bengaluru Rural", "Mysuru", "Belagavi", "Dharwad", "Tumakuru"];
+const CRIME_TYPES = ["Theft", "Assault", "Robbery", "Cheating", "Kidnapping", "Criminal Intimidation"];
+const STATUSES = ["Under Investigation", "Charge Sheet Filed", "Final Report", "Closed"];
+
+function populateSelect(id, values){
+  const el = document.getElementById(id);
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    el.appendChild(opt);
+  });
+}
+populateSelect('districtFilter', DISTRICTS);
+populateSelect('crimeTypeFilter', CRIME_TYPES);
+populateSelect('statusFilter', STATUSES);
+
+async function loadCases(){
+  const params = new URLSearchParams();
+  const search = document.getElementById('searchInput').value.trim();
+  const district = document.getElementById('districtFilter').value;
+  const crimeType = document.getElementById('crimeTypeFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  if(search) params.set('search', search);
+  if(district) params.set('district', district);
+  if(crimeType) params.set('crimeType', crimeType);
+  if(status) params.set('status', status);
+
+  document.getElementById('resultsBody').innerHTML = '<tr><td colspan="5" class="loading">Loading…</td></tr>';
+  try{
+    const res = await fetch(LIST_API + '?' + params.toString());
+    const data = await res.json();
+    if(data.status !== 'success') throw new Error(data.error || 'Unknown error');
+    renderResults(data.cases);
+    document.getElementById('subtitle').textContent = `${data.totalResults} case(s) found`;
+  }catch(err){
+    document.getElementById('resultsBody').innerHTML = `<tr><td colspan="5" class="loading">Failed to load: ${err.message}</td></tr>`;
+  }
+}
+
+function renderResults(cases){
+  if(cases.length === 0){
+    document.getElementById('resultsBody').innerHTML = '<tr><td colspan="5" class="loading">No cases match these filters.</td></tr>';
+    return;
+  }
+  document.getElementById('resultsBody').innerHTML = cases.map(c => `
+    <tr class="case-row" onclick="loadDetail('${c.Crime_no}')">
+      <td>${c.Crime_no.slice(-6)}</td>
+      <td>${(c.CrimeRegistrationDate || '').split(' ')[0]}</td>
+      <td>${c.PoliceStationName}</td>
+      <td>${c.CrimeGroupName}</td>
+      <td><span class="status-badge" data-s="${c.CaseStatus}">${c.CaseStatus}</span></td>
+    </tr>
+  `).join('');
+}
+
+async function loadDetail(crimeNo){
+  document.getElementById('detailCard').innerHTML = '<div class="loading">Loading case details…</div>';
+  try{
+    const res = await fetch(DETAIL_API + '?crimeNo=' + encodeURIComponent(crimeNo));
+    const data = await res.json();
+    if(data.status !== 'success') throw new Error(data.error || 'Unknown error');
+    renderDetail(data.case, data.accused);
+  }catch(err){
+    document.getElementById('detailCard').innerHTML = `<div class="placeholder">Failed to load details: ${err.message}</div>`;
+  }
+}
+
+function renderDetail(c, accused){
+  document.getElementById('detailCard').innerHTML = `
+    <h4>FIR No. ${c.Crime_no}</h4>
+    <div class="detail-row"><span>Status</span><span class="status-badge" data-s="${c.CaseStatus}">${c.CaseStatus}</span></div>
+    <div class="detail-row"><span>Crime Head</span><strong>${c.CrimeGroupName}</strong></div>
+    <div class="detail-row"><span>Police Station</span><strong>${c.PoliceStationName}</strong></div>
+    <div class="detail-row"><span>District</span><strong>${c.District_Name}</strong></div>
+    <div class="detail-row"><span>Registered</span><strong>${c.CrimeRegistrationDate}</strong></div>
+    <div class="detail-row"><span>Location</span><strong>${c.Latitude}, ${c.Longitude}</strong></div>
+    <div class="brief-facts">${c.BriefFacts || 'No summary available.'}</div>
+    <h4 style="margin-top:18px;">Accused (${accused.length})</h4>
+    ${accused.length ? accused.map(a => `
+      <div class="accused-item"><strong>${a.AccusedName}</strong> — Age ${a.AgeYear}, ${a.GenderID === 'M' ? 'Male' : a.GenderID === 'F' ? 'Female' : a.GenderID} (${a.PersonID})</div>
+    `).join('') : '<div class="accused-item" style="color:var(--muted)">No accused linked to this case.</div>'}
+  `;
+}
+
+loadCases();
+</script>
+</body>
+</html>

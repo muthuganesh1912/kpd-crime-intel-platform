@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hotspot Map — KSP Crime Intelligence Platform</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --navy:#0b1220; --blue:#2f5fe0; --blue-light:#eaf0ff;
+    --text:#1c2333; --muted:#6b7280; --border:#e7eaf0; --bg:#f6f7fb;
+    --high:#e0432f; --medium:#e0a52f; --low:#1fa15c;
+  }
+  *{box-sizing:border-box;}
+  html, body{height:100%;margin:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
+  .layout{display:flex;height:100vh;}
+  .sidebar{width:230px;background:var(--navy);color:#cbd3e6;flex-shrink:0;padding:20px 0;}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid #1c2740;margin-bottom:10px;}
+  .brand-badge{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .brand-badge img{width:100%;height:100%;object-fit:contain;}
+  .brand h1{font-size:13px;line-height:1.2;margin:0;color:#fff;}
+  .brand span{font-size:10px;color:#8a93ab;}
+  .nav{display:flex;flex-direction:column;padding:10px;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#aab3cc;text-decoration:none;font-size:13px;margin-bottom:2px;}
+  .nav a.active{background:var(--blue);color:#fff;}
+
+  .main{flex:1;padding:24px 28px;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .topbar h2{margin:0;font-size:22px;}
+  .topbar p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+
+  .content{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-top:18px;flex:1;min-height:0;}
+  .map-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;}
+  #map{width:100%;height:100%;}
+
+  .side-panel{display:flex;flex-direction:column;gap:14px;overflow-y:auto;min-height:0;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .card h4{margin:0 0 10px;font-size:13px;}
+
+  .legend{display:flex;gap:14px;font-size:11px;margin-bottom:10px;}
+  .legend span{display:flex;align-items:center;gap:4px;}
+  .legend .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .district-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f1f5;font-size:12px;}
+  .district-row:last-child{border-bottom:none;}
+  .badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;}
+  .badge.High{background:#fdeceb;color:var(--high);}
+  .badge.Medium{background:#fdf3e3;color:var(--medium);}
+  .badge.Low{background:#e8f7ee;color:var(--low);}
+
+  .bottom-table{margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;overflow-y:auto;max-height:180px;flex-shrink:0;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th, td{text-align:left;padding:8px;border-bottom:1px solid #f0f1f5;}
+  th{color:var(--muted);font-weight:600;}
+  .loading{color:var(--muted);font-size:13px;padding:12px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge"><img src="Seal_of_Karnataka.svg" alt="Karnataka State Emblem"></div>
+      <div><h1>KARNATAKA<br>STATE POLICE</h1><span>Crime Intelligence Platform</span></div>
+    </div>
+    <nav class="nav">
+      <a href="dashboard.html">Dashboard</a>
+<a href="crime_analytics.html">Crime Analytics</a>
+<a href="hotspot_map.html">Hotspot Map</a>
+<a href="network_analysis.html">Network Analysis</a>
+<a href="case_explorer.html">Case Explorer</a>
+<a href="ai_assistant.html">AI Crime Assistant</a>
+<a href="reports.html">Reports</a>
+<a href="alerts.html">Alerts</a>
+<a href="#">Settings</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2>Hotspot Map</h2>
+      <p id="subtitle">Loading live data from Catalyst…</p>
+    </div>
+
+    <div class="content">
+      <div class="map-card">
+        <div id="map"></div>
+      </div>
+
+      <div class="side-panel">
+        <div class="card">
+          <h4>District Intensity</h4>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--high)"></span>High</span>
+            <span><span class="dot" style="background:var(--medium)"></span>Medium</span>
+            <span><span class="dot" style="background:var(--low)"></span>Low</span>
+          </div>
+          <div id="districtList"><div class="loading">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-table">
+      <h4 style="margin:0 0 10px;font-size:13px;">Police Stations</h4>
+      <table>
+        <thead><tr><th>Station</th><th>District</th><th>Total FIRs</th></tr></thead>
+        <tbody id="stationTableBody"><tr><td colspan="3" class="loading">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script>
+const API_URL = "http://localhost:3000/server/hotspotmap/hotspotMap";
+const intensityColor = { High: '#e0432f', Medium: '#e0a52f', Low: '#1fa15c' };
+
+const map = L.map('map').setView([14.5, 76.5], 7); // roughly centered on Karnataka
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 12
+}).addTo(map);
+
+async function loadHotspotData(){
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if(data.status !== "success"){ throw new Error(data.error || "Unknown error"); }
+
+    renderMarkers(data.points);
+    renderDistrictList(data.districtSummary);
+    renderStationTable(data.stationSummary);
+    document.getElementById('subtitle').textContent = `Live data — ${data.points.length} incidents plotted across Karnataka`;
+  }catch(err){
+    document.getElementById('subtitle').textContent = "Could not load live data: " + err.message;
+    document.getElementById('districtList').innerHTML = '<div class="loading">Failed to load. Is `catalyst serve` running?</div>';
+  }
+}
+
+function renderMarkers(points){
+  points.forEach(p => {
+    const color = p.status === 'Closed' ? '#1fa15c' : p.status === 'Under Investigation' ? '#e0432f' : '#2f5fe0';
+    L.circleMarker([p.lat, p.lng], {
+      radius: 5,
+      fillColor: color,
+      color: '#fff',
+      weight: 1,
+      fillOpacity: 0.8
+    }).addTo(map).bindPopup(
+      `<strong>${p.crimeType}</strong><br>${p.station}, ${p.district}<br>Status: ${p.status}<br>Crime No: ${p.crimeNo}`
+    );
+  });
+}
+
+function renderDistrictList(rows){
+  document.getElementById('districtList').innerHTML = rows.map(r => `
+    <div class="district-row">
+      <span>${r.district} <span class="badge ${r.intensity}">${r.intensity}</span></span>
+      <span>${r.totalFIRs} FIRs</span>
+    </div>
+  `).join('');
+}
+
+function renderStationTable(rows){
+  document.getElementById('stationTableBody').innerHTML = rows.map(r => `
+    <tr><td>${r.station}</td><td>${r.district}</td><td>${r.totalFIRs}</td></tr>
+  `).join('');
+}
+
+loadHotspotData();
+</script>
+</body>
+</html>

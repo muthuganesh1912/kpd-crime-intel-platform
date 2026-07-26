@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Network Analysis — KSP Crime Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+  :root{
+    --navy:#0b1220; --blue:#2f5fe0; --blue-light:#eaf0ff;
+    --text:#1c2333; --muted:#6b7280; --border:#e7eaf0; --bg:#f6f7fb;
+    --accused:#e0432f; --case:#2f5fe0; --station:#1fa15c;
+  }
+  *{box-sizing:border-box;}
+  html, body{height:100%;margin:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
+  .layout{display:flex;height:100vh;}
+  .sidebar{width:230px;background:var(--navy);color:#cbd3e6;flex-shrink:0;padding:20px 0;}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid #1c2740;margin-bottom:10px;}
+  .brand-badge{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .brand-badge img{width:100%;height:100%;object-fit:contain;}
+  .brand h1{font-size:13px;line-height:1.2;margin:0;color:#fff;}
+  .brand span{font-size:10px;color:#8a93ab;}
+  .nav{display:flex;flex-direction:column;padding:10px;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#aab3cc;text-decoration:none;font-size:13px;margin-bottom:2px;}
+  .nav a.active{background:var(--blue);color:#fff;}
+
+  .main{flex:1;padding:24px 28px;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .topbar h2{margin:0;font-size:22px;}
+  .topbar p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+
+  .content{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-top:18px;flex:1;min-height:0;}
+  .graph-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;}
+  #network{width:100%;height:100%;}
+
+  .legend{position:absolute;bottom:14px;left:14px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11px;display:flex;gap:14px;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+
+  .side-panel{display:flex;flex-direction:column;gap:14px;overflow-y:auto;min-height:0;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .card h4{margin:0 0 10px;font-size:13px;}
+  .stat-row{display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid #f0f1f5;}
+  .stat-row:last-child{border-bottom:none;}
+  .offender-item{padding:8px 0;border-bottom:1px solid #f0f1f5;font-size:12px;cursor:pointer;}
+  .offender-item:hover{color:var(--blue);}
+  .offender-item:last-child{border-bottom:none;}
+  .loading{color:var(--muted);font-size:13px;padding:12px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-badge"><img src="Seal_of_Karnataka.svg" alt="Karnataka State Emblem"></div>
+      <div><h1>KARNATAKA<br>STATE POLICE</h1><span>Crime Intelligence Platform</span></div>
+    </div>
+    <nav class="nav">
+      <a href="dashboard.html">Dashboard</a>
+<a href="crime_analytics.html">Crime Analytics</a>
+<a href="hotspot_map.html">Hotspot Map</a>
+<a href="network_analysis.html">Network Analysis</a>
+<a href="case_explorer.html">Case Explorer</a>
+<a href="ai_assistant.html">AI Crime Assistant</a>
+<a href="reports.html">Reports</a>
+<a href="alerts.html">Alerts</a>
+<a href="#">Settings</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2>Network Analysis</h2>
+      <p id="subtitle">Loading live data from Catalyst…</p>
+    </div>
+
+    <div class="content">
+      <div class="graph-card">
+        <div id="network"></div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--accused)"></span>Accused</span>
+          <span><span class="dot" style="background:var(--case)"></span>Case</span>
+          <span><span class="dot" style="background:var(--station)"></span>Police Station</span>
+        </div>
+      </div>
+
+      <div class="side-panel">
+        <div class="card">
+          <h4>Network Summary</h4>
+          <div class="stat-row"><span>Repeat Offenders</span><strong id="repeatCount">–</strong></div>
+          <div class="stat-row"><span>Total Nodes</span><strong id="nodeCount">–</strong></div>
+          <div class="stat-row"><span>Total Connections</span><strong id="edgeCount">–</strong></div>
+        </div>
+        <div class="card">
+          <h4>Repeat Offenders</h4>
+          <div id="offenderList"><div class="loading">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API_URL = "http://localhost:3000/server/networkanalysis/networkAnalysis";
+let network = null;
+let allNodesData = null;
+
+const typeColor = { accused: '#e0432f', case: '#2f5fe0', station: '#1fa15c' };
+const typeShape = { accused: 'dot', case: 'box', station: 'triangle' };
+
+async function loadNetwork(){
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if(data.status !== "success"){ throw new Error(data.error || "Unknown error"); }
+
+    allNodesData = data.nodes;
+    renderGraph(data.nodes, data.edges);
+    renderSummary(data);
+    document.getElementById('subtitle').textContent = "Live data — accused, case, and station relationships";
+  }catch(err){
+    document.getElementById('subtitle').textContent = "Could not load live data: " + err.message;
+    document.getElementById('offenderList').innerHTML = '<div class="loading">Failed to load. Is `catalyst serve` running?</div>';
+  }
+}
+
+function renderGraph(nodesRaw, edgesRaw){
+  const nodes = new vis.DataSet(nodesRaw.map(n => ({
+    id: n.id,
+    label: n.label,
+    shape: typeShape[n.type],
+    color: n.type === 'accused' && n.isRepeatOffender ? '#b8281a' : typeColor[n.type],
+    size: n.type === 'accused' ? (n.isRepeatOffender ? 26 : 18) : 14,
+    font: { size: 11 }
+  })));
+  const edges = new vis.DataSet(edgesRaw.map(e => ({
+    from: e.from,
+    to: e.to,
+    color: e.relation === 'associate' ? { color: '#e0432f' } : { color: '#c7cede' },
+    dashes: e.relation === 'associate',
+    width: e.relation === 'associate' ? 2 : 1
+  })));
+
+  const container = document.getElementById('network');
+  network = new vis.Network(container, { nodes, edges }, {
+    physics: { stabilization: true, barnesHut: { gravitationalConstant: -3000, springLength: 120 } },
+    interaction: { hover: true }
+  });
+}
+
+function renderSummary(data){
+  document.getElementById('repeatCount').textContent = data.repeatOffenderCount;
+  document.getElementById('nodeCount').textContent = data.nodes.length;
+  document.getElementById('edgeCount').textContent = data.edges.length;
+
+  const offenders = data.nodes.filter(n => n.type === 'accused' && n.isRepeatOffender)
+    .sort((a, b) => b.linkedCases - a.linkedCases);
+
+  document.getElementById('offenderList').innerHTML = offenders.map(o => `
+    <div class="offender-item" onclick="focusNode('${o.id}')">
+      <strong>${o.label}</strong> — ${o.linkedCases} linked cases<br>
+      <span style="color:var(--muted)">Age ${o.age}, ${o.gender === 'M' ? 'Male' : o.gender === 'F' ? 'Female' : o.gender}</span>
+    </div>
+  `).join('') || '<div class="loading">No repeat offenders found.</div>';
+}
+
+function focusNode(nodeId){
+  if (!network) return;
+  network.focus(nodeId, { scale: 1.4, animation: true });
+  network.selectNodes([nodeId]);
+}
+
+loadNetwork();
+</script>
+</body>
+</html>
